@@ -4,32 +4,29 @@ import com.sun.management.OperatingSystemMXBean;
 
 import java.lang.management.ManagementFactory;
 
+import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
 
 public class Main{
+    private static String testName;
     public static void main(String[] args) {
+        System.out.println("Enter test Name: ");
+        Scanner scanner = new Scanner(System.in);
+        testName = scanner.nextLine();
         Timer timer = new Timer();
-        OperatingSystemMXBean osBean = ManagementFactory.getPlatformMXBean(OperatingSystemMXBean.class);
-
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                double cpuLoad = osBean.getSystemCpuLoad() * 100;
-                long totalMemory = osBean.getTotalPhysicalMemorySize();
-                long freeMemory = osBean.getFreePhysicalMemorySize();
-                int cpupercent = (int)Math.round(cpuLoad);
-                long memoryUsed = 0;
-                memoryUsed =(totalMemory / (1024 * 1024)) - (freeMemory / (1024 * 1024));
-                System.out.println("CPU Load: " + cpupercent + "%");
-                System.out.println("Total Memory: " + totalMemory / (1024 * 1024) + " MB");
-                System.out.println("Free Memory: " + freeMemory / (1024 * 1024) + " MB");
-                SQLconnector.updateDatalist(cpupercent,Math.toIntExact(memoryUsed));
-            }
-        };
-
-        timer.schedule(task, 0, 5000);
+        DataExtractor datacollector = new DataExtractor(testName);
+        timer.schedule(datacollector, 0, 1000);
+        new Thread(() -> {
+            System.out.println("Press Enter to stop Test...");
+            Scanner enter = new Scanner(System.in);
+            enter.nextLine();
+            timer.cancel();
+            System.out.println("Test Stopped");
+            System.out.println("Test Ran for:" + datacollector.getCount());
+            SQLconnector.updateDatalist(testName,datacollector.getAverageCpuLoad(), datacollector.getAverageMemoryUsed(), datacollector.getCount());
+        }).start();
     }
 }
 
